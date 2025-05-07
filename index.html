@@ -114,16 +114,19 @@
             padding: 30px;
             border: 2px solid #f59e0b;
         }
-        /* Styl pro power-upy a aktivní efekt */
-        .powerup-icon { /* Bude použito v JS pro kreslení */
-            font-size: 1.5rem; /* Větší než ovoce */
+        .powerup-icon {
+            font-size: 1.5rem;
             text-shadow: 0 0 5px white;
         }
         #activeEffectDisplay {
             font-size: 0.8rem;
-            min-height: 1.2em; /* Aby layout neposkakoval */
+            min-height: 1.2em;
             color: #facc15; /* yellow-400 */
             margin-top: 5px;
+        }
+        /* Styl pro High Score */
+        .high-score-label {
+            color: #f87171; /* Tailwind red-400 */
         }
 
     </style>
@@ -135,9 +138,10 @@
     </header>
 
     <div class="game-wrapper relative">
-         <div class="info-panel flex justify-between items-center w-full px-1 mb-2">
-            <p class="text-lg">Skóre: <span id="score" class="text-yellow-400">0</span></p>
-            <div class="flex items-center">
+         <div class="info-panel grid grid-cols-2 gap-4 w-full px-1 mb-2 text-sm sm:text-lg">
+            <p>Skóre: <span id="score" class="text-yellow-400">0</span></p>
+            <p class="text-right">Nej: <span id="highScore" class="high-score-label">0</span></p>
+            <div class="col-span-2 flex justify-center items-center mt-1">
                  <label for="foodSelect" class="text-xs mr-1">Ovoce:</label>
                  <select id="foodSelect">
                      <option value="🍎">🍎 Jablko</option>
@@ -179,11 +183,12 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score');
+        const highScoreDisplay = document.getElementById('highScore'); // Nový element
         const restartButton = document.getElementById('restartButton');
         const foodSelect = document.getElementById('foodSelect');
         const pauseButton = document.getElementById('pauseButton');
         const pauseOverlay = document.getElementById('pauseOverlay');
-        const activeEffectDisplay = document.getElementById('activeEffectDisplay'); // Nový element
+        const activeEffectDisplay = document.getElementById('activeEffectDisplay');
 
         const messageOverlay = document.getElementById('messageOverlay');
         const gameOverText = document.getElementById('gameOverText');
@@ -200,27 +205,28 @@
         let snake;
         let food;
         let score = 0;
+        let highScore = 0; // Nová proměnná
         let dx, dy;
         let gameLoopTimeout;
-        let baseGameSpeed = 280; // Základní rychlost
-        let gameSpeed = baseGameSpeed; // Aktuální rychlost
+        let baseGameSpeed = 280;
+        let gameSpeed = baseGameSpeed;
         let gameOverFlag = false;
         let gamePaused = true;
         let gameRunning = false;
         let currentFoodEmoji = '🍎';
 
         // --- Power-upy ---
-        let powerUp = null; // Může být jen jeden power-up najednou {x, y, type, emoji}
+        let powerUp = null;
         let powerUpSpawnTimeout;
         let powerUpDespawnTimeout;
         const POWER_UP_TYPES = {
-            SLOWDOWN: { emoji: '🐌', duration: 5000, effectValue: 1.5 }, // Zpomalení (násobitel rychlosti)
-            DOUBLE_SCORE: { emoji: '✨', duration: 8000, effectValue: 2 } // Dvojité skóre (násobitel skóre)
+            SLOWDOWN: { emoji: '🐌', duration: 5000, effectValue: 1.5 },
+            DOUBLE_SCORE: { emoji: '✨', duration: 8000, effectValue: 2 }
         };
-        const powerUpSpawnInterval = 10000; // Každých 10 sekund šance na spawn
-        const powerUpLifespan = 7000; // Power-up zmizí po 7 sekundách
-        let activeEffect = null; // { type: 'SLOWDOWN'/'DOUBLE_SCORE', timeoutId: null, endTime: null, emoji: '🐌'/'✨' }
-        let activeEffectUpdateInterval; // Interval pro aktualizaci UI času efektu
+        const powerUpSpawnInterval = 10000;
+        const powerUpLifespan = 7000;
+        let activeEffect = null;
+        let activeEffectUpdateInterval;
 
         // --- Swipe ---
         let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
@@ -230,7 +236,7 @@
         function resizeCanvas() {
             const gameWrapper = document.querySelector('.game-wrapper');
             let availableWidth = gameWrapper.clientWidth;
-            let availableHeight = window.innerHeight * 0.6; // Mírně menší prostor pro UI
+            let availableHeight = window.innerHeight * 0.6;
             let size = Math.min(availableWidth, availableHeight);
             tileSize = Math.floor(size / numGridCells);
             if (tileSize < 8) tileSize = 8;
@@ -244,16 +250,15 @@
             dy = 0;
         }
 
-        function placeItem(itemType) { // Obecná funkce pro umístění jídla nebo power-upu
+        function placeItem(itemType) {
             let item = { x: 0, y: 0 };
             let collision = true;
-            let attempts = 0; // Pojistka proti nekonečné smyčce
+            let attempts = 0;
             while (collision && attempts < 100) {
                 item.x = Math.floor(Math.random() * numGridCells) * tileSize;
                 item.y = Math.floor(Math.random() * numGridCells) * tileSize;
                 collision = false;
                 attempts++;
-                // Kolize s hadem
                 if (snake) {
                     for (const segment of snake) {
                         if (segment.x === item.x && segment.y === item.y) {
@@ -262,11 +267,9 @@
                     }
                 }
                 if (collision) continue;
-                // Kolize s jídlem (pokud umisťujeme power-up)
                 if (itemType === 'powerup' && food && food.x === item.x && food.y === item.y) {
                     collision = true; continue;
                 }
-                // Kolize s power-upem (pokud umisťujeme jídlo)
                 if (itemType === 'food' && powerUp && powerUp.x === item.x && powerUp.y === item.y) {
                     collision = true; continue;
                 }
@@ -306,8 +309,8 @@
         function activateEffect(type) {
             const typeData = POWER_UP_TYPES[type];
             if (!typeData) return;
-            clearTimeout(activeEffect?.timeoutId); // Zruší předchozí timeout efektu
-            clearInterval(activeEffectUpdateInterval); // Zruší předchozí interval UI
+            clearTimeout(activeEffect?.timeoutId);
+            clearInterval(activeEffectUpdateInterval);
 
             activeEffect = {
                 type: type,
@@ -316,17 +319,17 @@
                 emoji: typeData.emoji
             };
             updateActiveEffectDisplay(); // Aktualizuje UI hned
+            // Spustí interval pro aktualizaci času v UI
+            activeEffectUpdateInterval = setInterval(updateActiveEffectDisplay, 1000);
         }
 
         function deactivateEffect() {
-            // Pokud se deaktivuje zpomalení, musíme přepočítat rychlost smyčky
             const wasSlowdown = activeEffect?.type === 'SLOWDOWN';
             activeEffect = null;
-            clearInterval(activeEffectUpdateInterval); // Zastaví aktualizaci UI
-            updateActiveEffectDisplay(); // Vymaže UI
+            clearInterval(activeEffectUpdateInterval);
+            updateActiveEffectDisplay();
 
             if (wasSlowdown && !gamePaused && !gameOverFlag) {
-                // Restartujeme smyčku s novou (základní) rychlostí
                 clearTimeout(gameLoopTimeout);
                 gameLoop();
             }
@@ -338,15 +341,14 @@
                 if (remainingTime > 0) {
                     activeEffectDisplay.innerHTML = `Efekt: ${activeEffect.emoji} (${remainingTime}s)`;
                 } else {
-                    // Pokud čas vypršel, ale timeout ještě nebyl zpracován
+                    // Pokud čas vypršel, ale timeout ještě nebyl zpracován (clearInterval mohl být rychlejší)
                     deactivateEffect();
                 }
             } else {
                 activeEffectDisplay.innerHTML = '';
-                clearInterval(activeEffectUpdateInterval); // Zastaví interval, pokud už není efekt
+                clearInterval(activeEffectUpdateInterval);
             }
         }
-
 
         function draw() {
             ctx.fillStyle = '#2d3748';
@@ -365,7 +367,7 @@
                  ctx.font = `${fontSize}px sans-serif`;
                  ctx.textAlign = 'center';
                  ctx.textBaseline = 'middle';
-                 ctx.globalAlpha = 0.7 + Math.sin(Date.now() / 200) * 0.3; // Blikání
+                 ctx.globalAlpha = 0.7 + Math.sin(Date.now() / 200) * 0.3;
                  ctx.shadowColor = "white";
                  ctx.shadowBlur = 10;
                  ctx.fillText(powerUp.emoji, powerUp.x + tileSize / 2, powerUp.y + tileSize / 2 + fontSize * 0.08);
@@ -399,22 +401,20 @@
 
             snake.unshift(head);
 
-            // Kolize s jídlem
             if (head.x === food.x && head.y === food.y) {
                 const scoreMultiplier = activeEffect?.type === 'DOUBLE_SCORE' ? POWER_UP_TYPES.DOUBLE_SCORE.effectValue : 1;
                 score += (1 * scoreMultiplier);
-                scoreDisplay.textContent = score;
+                // scoreDisplay.textContent = score; // Aktualizujeme v drawScoreAndHighScore
                 placeFood();
                 if (score > 0 && score % 5 === 0 && baseGameSpeed > 80) {
                     baseGameSpeed -= 10;
                 }
             }
-            // Kolize s power-upem
             else if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
                 activateEffect(powerUp.type);
                 powerUp = null;
                 clearTimeout(powerUpDespawnTimeout);
-                snake.pop(); // Had neroste
+                snake.pop();
             }
             else {
                 snake.pop();
@@ -427,18 +427,40 @@
                  return;
             }
              if (gamePaused) {
-                 gameLoopTimeout = setTimeout(gameLoop, 100); // Kontroluje stav pauzy
+                 gameLoopTimeout = setTimeout(gameLoop, 100);
                  return;
              }
 
             update();
             draw();
+            drawScoreAndHighScore(); // Přesunuto sem pro aktuální zobrazení
 
             const speedMultiplier = activeEffect?.type === 'SLOWDOWN' ? POWER_UP_TYPES.SLOWDOWN.effectValue : 1;
             const currentSpeed = baseGameSpeed * speedMultiplier;
 
             gameLoopTimeout = setTimeout(gameLoop, currentSpeed);
         }
+
+        // Funkce pro načtení high score z localStorage
+        function loadHighScore() {
+            const storedHighScore = localStorage.getItem('snakeHighScore');
+            highScore = storedHighScore ? parseInt(storedHighScore, 10) : 0;
+        }
+
+        // Funkce pro uložení high score do localStorage (pokud je překonáno)
+        function updateHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snakeHighScore', highScore);
+            }
+        }
+
+        // Funkce pro vykreslení skóre a high score
+        function drawScoreAndHighScore() {
+            scoreDisplay.textContent = score;
+            highScoreDisplay.textContent = highScore; // Zobrazí načtené/aktuální high score
+        }
+
 
         function gameOver() {
             gameOverFlag = true;
@@ -448,7 +470,8 @@
             clearTimeout(powerUpSpawnTimeout);
             clearTimeout(powerUpDespawnTimeout);
             clearTimeout(activeEffect?.timeoutId);
-            clearInterval(activeEffectUpdateInterval); // Zastaví UI interval
+            clearInterval(activeEffectUpdateInterval);
+            updateHighScore(); // Zkontroluje a uloží high score
             activeEffect = null;
             powerUp = null;
             updateActiveEffectDisplay();
@@ -477,15 +500,17 @@
                 pauseOverlay.classList.remove('hidden');
                 foodSelect.disabled = false;
                 clearTimeout(powerUpSpawnTimeout);
-                clearInterval(activeEffectUpdateInterval); // Zastaví UI interval při pauze
-                // Smyčka se zastaví sama
+                clearInterval(activeEffectUpdateInterval);
             } else {
                 pauseButton.textContent = "PAUZA";
                 pauseOverlay.classList.add('hidden');
                 foodSelect.disabled = true;
-                schedulePowerUpSpawn(); // Znovu naplánuje spawn
-                updateActiveEffectDisplay(); // Spustí aktualizaci UI efektu
-                // Explicitně spustíme další krok smyčky
+                schedulePowerUpSpawn();
+                if (activeEffect) { // Znovu spustí update UI pro aktivní efekt
+                    clearInterval(activeEffectUpdateInterval); // Pro jistotu
+                    activeEffectUpdateInterval = setInterval(updateActiveEffectDisplay, 1000);
+                    updateActiveEffectDisplay();
+                }
                 clearTimeout(gameLoopTimeout);
                 gameLoop();
             }
@@ -571,21 +596,20 @@
             currentFoodEmoji = foodSelect.value;
             placeFood();
             score = 0;
-            scoreDisplay.textContent = score;
+            // scoreDisplay.textContent = score; // Aktualizujeme v drawScoreAndHighScore
             gameOverFlag = false;
             gamePaused = false;
             gameRunning = true;
             baseGameSpeed = 280;
-            gameSpeed = baseGameSpeed; // Nastavení aktuální rychlosti
+            gameSpeed = baseGameSpeed;
 
-            // Reset power-upů a efektů
             powerUp = null;
             activeEffect = null;
             clearTimeout(powerUpSpawnTimeout);
             clearTimeout(powerUpDespawnTimeout);
             clearTimeout(activeEffect?.timeoutId);
-            clearInterval(activeEffectUpdateInterval); // Zastaví UI interval
-            updateActiveEffectDisplay(); // Vyčistí UI
+            clearInterval(activeEffectUpdateInterval);
+            updateActiveEffectDisplay();
 
             messageOverlay.classList.add('hidden');
             pauseOverlay.classList.add('hidden');
@@ -594,9 +618,10 @@
             pauseButton.textContent = "PAUZA";
             pauseButton.disabled = false;
 
+            drawScoreAndHighScore(); // Zobrazí počáteční skóre (0) a high score
             clearTimeout(gameLoopTimeout);
-            gameLoop(); // Spustí herní smyčku
-            schedulePowerUpSpawn(); // Naplánuje první spawn power-upu
+            gameLoop();
+            schedulePowerUpSpawn();
         }
 
         restartButton.addEventListener('click', startGame);
@@ -609,13 +634,14 @@
 
             clearTimeout(gameLoopTimeout);
             clearTimeout(powerUpSpawnTimeout);
-            clearInterval(activeEffectUpdateInterval); // Zastaví UI interval
+            clearInterval(activeEffectUpdateInterval);
             gamePaused = true;
 
             resizeCanvas();
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (snake && food) { draw(); } else { initializeGameUI(); return; }
+            drawScoreAndHighScore(); // Překreslíme i skóre
 
             if (wasGameOver) {
                  gameOver();
@@ -626,14 +652,14 @@
                 pauseButton.textContent = "PAUZA";
                 gameLoop();
                 schedulePowerUpSpawn();
-                updateActiveEffectDisplay(); // Znovu spustí UI interval, pokud byl aktivní efekt
+                updateActiveEffectDisplay();
             } else if (wasPausedBeforeResize && wasRunningBeforeResize) {
                 gamePaused = true;
                 pauseOverlay.classList.remove('hidden');
                 foodSelect.disabled = false;
                 pauseButton.textContent = "POKRAČOVAT";
                 pauseButton.disabled = false;
-                updateActiveEffectDisplay(); // Zobrazí stav efektu
+                updateActiveEffectDisplay();
             } else {
                 initializeGameUI();
             }
@@ -641,13 +667,15 @@
 
         // --- Inicializace ---
         function initializeGameUI() {
+            loadHighScore(); // Načte high score při inicializaci
             resizeCanvas();
             initSnake();
             currentFoodEmoji = foodSelect.value;
             placeFood();
             draw();
             score = 0;
-            scoreDisplay.textContent = score;
+            // scoreDisplay.textContent = score; // Aktualizujeme v drawScoreAndHighScore
+            drawScoreAndHighScore(); // Zobrazí 0 a načtené high score
             foodSelect.disabled = false;
             pauseButton.disabled = true;
             messageOverlay.classList.add('hidden');
