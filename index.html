@@ -3,154 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hra: Hádej číslo!</title>
+    <title>Hra: Snake!</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        /* Vlastní styly pro hru */
         body {
-            font-family: 'Inter', sans-serif; /* Použití písma Inter */
+            font-family: 'Press Start 2P', cursive; /* Arkádové písmo */
+            overscroll-behavior: none; /* Zabrání "pull-to-refresh" na mobilu */
         }
-        .game-container {
-            min-height: 400px; /* Minimální výška pro kontejner hry */
+        /* Centrovaní canvasu a zajištění, aby se neroztahoval text */
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            touch-action: none; /* Zabrání zoomování a posouvání dotykem na canvasu */
         }
-        /* Styly pro input, aby lépe zapadl */
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        canvas {
+            background-color: #2d3748; /* Tmavě šedá pro pozadí canvasu (Tailwind gray-800) */
+            border: 4px solid #1a202c; /* Ještě tmavší okraj (Tailwind gray-900) */
+            border-radius: 8px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            max-width: 100%; /* Canvas se přizpůsobí šířce kontejneru */
+            height: auto; /* Výška se přizpůsobí poměru stran */
         }
-        input[type="number"] {
-            -moz-appearance: textfield; /* Firefox */
+        /* Styly pro tlačítka pod canvasem */
+        .control-button {
+            background-color: #4a5568; /* Tailwind gray-600 */
+            color: white;
+            border: 2px solid #2d3748; /* Tailwind gray-800 */
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 4px #2d3748; /* Jednoduchý 3D efekt */
+            margin: 5px;
+        }
+        .control-button:hover {
+            background-color: #2d3748; /* Tailwind gray-800 */
+        }
+        .control-button:active {
+            background-color: #1a202c; /* Tailwind gray-900 */
+            transform: translateY(2px);
+            box-shadow: 0 2px #1a202c;
+        }
+        /* Skryté tlačítko pro restart */
+        .hidden {
+            display: none;
+        }
+        /* Zpráva přes canvas */
+        #messageOverlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5rem; /* Větší písmo pro zprávu */
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            z-index: 10; /* Aby byla nad canvasem */
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-emerald-100 to-teal-100 flex flex-col items-center justify-center min-h-screen p-6 selection:bg-teal-300 selection:text-teal-900">
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
 
-    <div class="bg-white p-8 md:p-10 rounded-xl shadow-2xl text-center max-w-md w-full game-container">
-        <header class="mb-6">
-            <h1 class="text-3xl md:text-4xl font-bold text-teal-600">Hádej Číslo!</h1>
-            <p class="text-gray-600 mt-2">Myslím si číslo od 1 do 100. Zkusíš ho uhodnout?</p>
-        </header>
+    <header class="mb-4 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-green-400">SNAKE</h1>
+    </header>
 
-        <main>
-            <div class="mb-4">
-                <label for="tipInput" class="block text-sm font-medium text-gray-700 mb-1">Tvůj tip:</label>
-                <input type="number" id="tipInput" name="tipInput"
-                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-center text-lg"
-                       min="1" max="100">
-            </div>
-
-            <button id="zkusitTlacitko"
-                    class="w-full bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out transform hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-75">
-                Zkusit!
-            </button>
-
-            <div id="zpravaOblast" class="mt-6 min-h-[60px]">
-                <p id="zpravaText" class="text-lg text-gray-700"></p>
-                <p id="pocetPokusuText" class="text-sm text-gray-500 mt-1"></p>
-            </div>
-
-            <button id="novaHraTlacitko"
-                    class="hidden w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out">
-                Hrát znovu
-            </button>
-        </main>
+    <div class="game-wrapper relative">
+        <canvas id="gameCanvas"></canvas>
+        <div id="messageOverlay" class="hidden">
+            <p id="gameOverText"></p>
+            <button id="restartButtonOverlay" class="control-button mt-4">Hrát Znovu</button>
+        </div>
     </div>
 
-    <footer class="mt-10 text-center text-sm text-gray-500">
-        Jednoduchá hra v JavaScriptu.
+
+    <div class="mt-4 text-center">
+        <p class="text-2xl">Skóre: <span id="score" class="text-yellow-400">0</span></p>
+    </div>
+
+    <div id="mobileControls" class="mt-6 grid grid-cols-3 gap-2 w-full max-w-xs md:hidden">
+        <div></div> <button id="upBtn" class="control-button">↑</button>
+        <div></div>
+
+        <button id="leftBtn" class="control-button">←</button>
+        <button id="downBtn" class="control-button">↓</button>
+        <button id="rightBtn" class="control-button">→</button>
+    </div>
+
+    <button id="restartButton" class="control-button mt-6 hidden">Restart Hry</button>
+
+    <footer class="mt-8 text-center text-xs text-gray-500">
+        Použij šipky na klávesnici nebo tlačítka pro pohyb.
     </footer>
 
     <script>
         // Herní logika v JavaScriptu
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const restartButton = document.getElementById('restartButton');
 
-        // Získání HTML elementů
-        const tipInputElement = document.getElementById('tipInput');
-        const zkusitTlacitkoElement = document.getElementById('zkusitTlacitko');
-        const zpravaTextElement = document.getElementById('zpravaText');
-        const pocetPokusuTextElement = document.getElementById('pocetPokusuText');
-        const novaHraTlacitkoElement = document.getElementById('novaHraTlacitko');
+        const messageOverlay = document.getElementById('messageOverlay');
+        const gameOverText = document.getElementById('gameOverText');
+        const restartButtonOverlay = document.getElementById('restartButtonOverlay');
 
-        // Herní proměnné
-        let nahodneCislo;
-        let pocetPokusu;
-        let hraBezi;
+        const upBtn = document.getElementById('upBtn');
+        const downBtn = document.getElementById('downBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
 
-        // Funkce pro spuštění nové hry
-        function novaHra() {
-            // Vygeneruje náhodné číslo mezi 1 a 100
-            nahodneCislo = Math.floor(Math.random() * 100) + 1;
-            pocetPokusu = 0;
-            hraBezi = true;
+        const numGridCells = 20; // Počet políček v mřížce (šířka i výška)
+        let tileSize; // Velikost jednoho políčka v pixelech, vypočítá se dynamicky
 
-            // Resetování UI
-            zpravaTextElement.textContent = "Zadej svůj první tip.";
-            zpravaTextElement.className = 'text-lg text-gray-700'; // Reset barvy textu
-            pocetPokusuTextElement.textContent = "";
-            tipInputElement.value = "";
-            tipInputElement.disabled = false;
-            zkusitTlacitkoElement.disabled = false;
-            novaHraTlacitkoElement.classList.add('hidden'); // Skryje tlačítko pro novou hru
+        let snake;
+        let food;
+        let score;
+        let dx, dy; // Směr pohybu hada (v pixelech, odpovídá tileSize)
+        let gameLoopInterval;
+        let gameSpeed = 220; // Rychlost hry v ms (vyšší = pomalejší), ZPOMALENO
+        let gameOverFlag;
 
-            console.log("Nová hra spuštěna. Myšlené číslo: " + nahodneCislo); // Pro ladění
+        function resizeCanvas() {
+            const gameWrapper = document.querySelector('.game-wrapper');
+            let availableWidth = gameWrapper.clientWidth;
+            // Omezíme maximální výšku, aby se vešly i ovládací prvky a skóre
+            let availableHeight = window.innerHeight * 0.55; // Trochu menší prostor pro canvas
+
+            // Určíme omezující rozměr pro čtvercový canvas
+            let size = Math.min(availableWidth, availableHeight);
+
+            // Vypočítáme optimální tileSize (musí být celé číslo)
+            tileSize = Math.floor(size / numGridCells);
+            if (tileSize < 5) tileSize = 5; // Minimální velikost políčka, aby hra byla hratelná
+
+            // Nastavíme velikost canvasu tak, aby byla přesným násobkem tileSize * numGridCells
+            canvas.width = tileSize * numGridCells;
+            canvas.height = tileSize * numGridCells;
         }
 
-        // Funkce pro kontrolu tipu
-        function zkontrolujTip() {
-            if (!hraBezi) return; // Pokud hra neběží, nic nedělej
-
-            const uzivatelskyTip = parseInt(tipInputElement.value);
-            pocetPokusu++;
-
-            // Validace vstupu
-            if (isNaN(uzivatelskyTip) || uzivatelskyTip < 1 || uzivatelskyTip > 100) {
-                zpravaTextElement.textContent = "Prosím, zadej platné číslo od 1 do 100.";
-                zpravaTextElement.className = 'text-lg text-red-600'; // Červená barva pro chybu
-                pocetPokusuTextElement.textContent = `Počet pokusů: ${pocetPokusu}`;
-                return;
-            }
-
-            // Porovnání tipu s náhodným číslem
-            if (uzivatelskyTip === nahodneCislo) {
-                zpravaTextElement.textContent = `Gratuluji! Uhodl jsi číslo ${nahodneCislo}!`;
-                zpravaTextElement.className = 'text-lg text-green-600 font-semibold'; // Zelená pro výhru
-                pocetPokusuTextElement.textContent = `Potřeboval jsi na to ${pocetPokusu} pokusů.`;
-                hraBezi = false;
-                tipInputElement.disabled = true;
-                zkusitTlacitkoElement.disabled = true;
-                novaHraTlacitkoElement.classList.remove('hidden'); // Zobrazí tlačítko pro novou hru
-            } else if (uzivatelskyTip < nahodneCislo) {
-                zpravaTextElement.textContent = "Moc nízké! Zkus to znovu.";
-                zpravaTextElement.className = 'text-lg text-blue-600';
-                pocetPokusuTextElement.textContent = `Počet pokusů: ${pocetPokusu}`;
-            } else {
-                zpravaTextElement.textContent = "Moc vysoké! Zkus to znovu.";
-                zpravaTextElement.className = 'text-lg text-purple-600';
-                pocetPokusuTextElement.textContent = `Počet pokusů: ${pocetPokusu}`;
-            }
-            tipInputElement.value = ""; // Vyčistí input po každém pokusu
-            tipInputElement.focus(); // Vrátí focus na input
+        function initSnake() {
+            snake = [
+                // Start hada uprostřed mřížky
+                { x: Math.floor(numGridCells / 2) * tileSize, y: Math.floor(numGridCells / 2) * tileSize }
+            ];
         }
 
-        // Přidání posluchačů událostí
-        if (zkusitTlacitkoElement) {
-            zkusitTlacitkoElement.addEventListener('click', zkontrolujTip);
-        }
-        if (novaHraTlacitkoElement) {
-            novaHraTlacitkoElement.addEventListener('click', novaHra);
-        }
-        // Umožní odeslání tipu i stisknutím Enter v input poli
-        if (tipInputElement) {
-            tipInputElement.addEventListener('keypress', function(event) {
-                if (event.key === 'Enter') {
-                    zkontrolujTip();
+        function placeFood() {
+            food = {
+                // Náhodná pozice jídla na mřížce
+                x: Math.floor(Math.random() * numGridCells) * tileSize,
+                y: Math.floor(Math.random() * numGridCells) * tileSize
+            };
+            // Ujistíme se, že jídlo není na hadovi
+            for (const segment of snake) {
+                if (segment.x === food.x && segment.y === food.y) {
+                    placeFood(); // Pokud ano, umístíme jídlo znovu
+                    return; // Ukončíme aktuální volání placeFood
                 }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#2d3748'; // Barva pozadí
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#f56565'; // Červená pro jídlo
+            ctx.beginPath();
+            ctx.arc(food.x + tileSize / 2, food.y + tileSize / 2, tileSize / 2.2, 0, 2 * Math.PI);
+            ctx.fill();
+
+            snake.forEach((segment, index) => {
+                ctx.fillStyle = (index === 0) ? '#48bb78' : '#68d391'; // Hlava vs. tělo
+                ctx.fillRect(segment.x, segment.y, tileSize - 1, tileSize - 1); // Malá mezera mezi segmenty
+                ctx.strokeStyle = '#2d3748'; // Okraj segmentů
+                ctx.strokeRect(segment.x, segment.y, tileSize, tileSize);
             });
         }
 
+        function update() {
+            if (gameOverFlag) return;
 
-        // Spuštění první hry při načtení stránky
-        novaHra();
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                gameOver();
+                return;
+            }
+
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreDisplay.textContent = score;
+                placeFood();
+                if (score > 0 && score % 5 === 0 && gameSpeed > 60) { // Minimální rychlost 60ms
+                    gameSpeed -= 15; // Zrychlení je teď o 15ms
+                    clearInterval(gameLoopInterval);
+                    gameLoopInterval = setInterval(gameLoop, gameSpeed);
+                }
+            } else {
+                snake.pop();
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+        }
+
+        function gameOver() {
+            gameOverFlag = true;
+            clearInterval(gameLoopInterval);
+            gameOverText.textContent = `Konec Hry! Skóre: ${score}`;
+            messageOverlay.classList.remove('hidden');
+            restartButton.classList.remove('hidden');
+        }
+
+        document.addEventListener('keydown', e => {
+            const keyPressed = e.key;
+            if (!gameOverFlag) { // Ovládání funguje jen pokud hra běží
+                if ((keyPressed === 'ArrowUp' || keyPressed.toLowerCase() === 'w') && dy === 0) {
+                    dx = 0; dy = -tileSize;
+                } else if ((keyPressed === 'ArrowDown' || keyPressed.toLowerCase() === 's') && dy === 0) {
+                    dx = 0; dy = tileSize;
+                } else if ((keyPressed === 'ArrowLeft' || keyPressed.toLowerCase() === 'a') && dx === 0) {
+                    dx = -tileSize; dy = 0;
+                } else if ((keyPressed === 'ArrowRight' || keyPressed.toLowerCase() === 'd') && dx === 0) {
+                    dx = tileSize; dy = 0;
+                }
+            }
+        });
+
+        if (upBtn) upBtn.addEventListener('click', () => { if (dy === 0 && !gameOverFlag) { dx = 0; dy = -tileSize; }});
+        if (downBtn) downBtn.addEventListener('click', () => { if (dy === 0 && !gameOverFlag) { dx = 0; dy = tileSize; }});
+        if (leftBtn) leftBtn.addEventListener('click', () => { if (dx === 0 && !gameOverFlag) { dx = -tileSize; dy = 0; }});
+        if (rightBtn) rightBtn.addEventListener('click', () => { if (dx === 0 && !gameOverFlag) { dx = tileSize; dy = 0; }});
+
+        function startGame() {
+            resizeCanvas(); // Nastaví velikost canvasu a tileSize
+            initSnake();
+            placeFood();
+            score = 0;
+            scoreDisplay.textContent = score;
+            // Počáteční směr doprava (nebo jiný, pokud preferuješ)
+            dx = tileSize;
+            dy = 0;
+            gameOverFlag = false;
+            gameSpeed = 220; // Reset rychlosti na pomalejší
+
+            messageOverlay.classList.add('hidden');
+            restartButton.classList.add('hidden');
+
+            if (gameLoopInterval) clearInterval(gameLoopInterval);
+            gameLoopInterval = setInterval(gameLoop, gameSpeed);
+        }
+
+        restartButton.addEventListener('click', startGame);
+        restartButtonOverlay.addEventListener('click', startGame);
+
+        window.addEventListener('resize', () => {
+            const gameWasRunning = !gameOverFlag && gameLoopInterval;
+
+            if (gameLoopInterval) {
+                clearInterval(gameLoopInterval);
+                gameLoopInterval = null;
+            }
+            resizeCanvas(); // Přepočítá velikosti
+
+            if (gameWasRunning) {
+                startGame(); // Restartuje hru, aby se vše přizpůsobilo nové velikosti
+            } else if (gameOverFlag) {
+                draw(); // Překreslí poslední stav (had, jídlo)
+                messageOverlay.classList.remove('hidden'); // Ujistí se, že zpráva o konci hry je viditelná
+                restartButton.classList.remove('hidden');
+            } else {
+                draw(); // Překreslí prázdný canvas (pokud hra ještě nezačala)
+            }
+        });
+
+        startGame(); // První spuštění hry
     </script>
 
 </body>
