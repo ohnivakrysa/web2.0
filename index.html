@@ -1,11 +1,157 @@
-<html>
+<!DOCTYPE html>
+<html lang="cs">
 <head>
-<title>Má první stránka</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hra: Hádej číslo!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Vlastní styly pro hru */
+        body {
+            font-family: 'Inter', sans-serif; /* Použití písma Inter */
+        }
+        .game-container {
+            min-height: 400px; /* Minimální výška pro kontejner hry */
+        }
+        /* Styly pro input, aby lépe zapadl */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield; /* Firefox */
+        }
+    </style>
 </head>
- 
-<body>
-  <p>Moje první html stránka.</p>
-  <p>Moje první html stránka.</p>
-   <p>A nějaké další texty.</p>
+<body class="bg-gradient-to-br from-emerald-100 to-teal-100 flex flex-col items-center justify-center min-h-screen p-6 selection:bg-teal-300 selection:text-teal-900">
+
+    <div class="bg-white p-8 md:p-10 rounded-xl shadow-2xl text-center max-w-md w-full game-container">
+        <header class="mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-600">Hádej Číslo!</h1>
+            <p class="text-gray-600 mt-2">Myslím si číslo od 1 do 100. Zkusíš ho uhodnout?</p>
+        </header>
+
+        <main>
+            <div class="mb-4">
+                <label for="tipInput" class="block text-sm font-medium text-gray-700 mb-1">Tvůj tip:</label>
+                <input type="number" id="tipInput" name="tipInput"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-center text-lg"
+                       min="1" max="100">
+            </div>
+
+            <button id="zkusitTlacitko"
+                    class="w-full bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out transform hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-75">
+                Zkusit!
+            </button>
+
+            <div id="zpravaOblast" class="mt-6 min-h-[60px]">
+                <p id="zpravaText" class="text-lg text-gray-700"></p>
+                <p id="pocetPokusuText" class="text-sm text-gray-500 mt-1"></p>
+            </div>
+
+            <button id="novaHraTlacitko"
+                    class="hidden w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out">
+                Hrát znovu
+            </button>
+        </main>
+    </div>
+
+    <footer class="mt-10 text-center text-sm text-gray-500">
+        Jednoduchá hra v JavaScriptu.
+    </footer>
+
+    <script>
+        // Herní logika v JavaScriptu
+
+        // Získání HTML elementů
+        const tipInputElement = document.getElementById('tipInput');
+        const zkusitTlacitkoElement = document.getElementById('zkusitTlacitko');
+        const zpravaTextElement = document.getElementById('zpravaText');
+        const pocetPokusuTextElement = document.getElementById('pocetPokusuText');
+        const novaHraTlacitkoElement = document.getElementById('novaHraTlacitko');
+
+        // Herní proměnné
+        let nahodneCislo;
+        let pocetPokusu;
+        let hraBezi;
+
+        // Funkce pro spuštění nové hry
+        function novaHra() {
+            // Vygeneruje náhodné číslo mezi 1 a 100
+            nahodneCislo = Math.floor(Math.random() * 100) + 1;
+            pocetPokusu = 0;
+            hraBezi = true;
+
+            // Resetování UI
+            zpravaTextElement.textContent = "Zadej svůj první tip.";
+            zpravaTextElement.className = 'text-lg text-gray-700'; // Reset barvy textu
+            pocetPokusuTextElement.textContent = "";
+            tipInputElement.value = "";
+            tipInputElement.disabled = false;
+            zkusitTlacitkoElement.disabled = false;
+            novaHraTlacitkoElement.classList.add('hidden'); // Skryje tlačítko pro novou hru
+
+            console.log("Nová hra spuštěna. Myšlené číslo: " + nahodneCislo); // Pro ladění
+        }
+
+        // Funkce pro kontrolu tipu
+        function zkontrolujTip() {
+            if (!hraBezi) return; // Pokud hra neběží, nic nedělej
+
+            const uzivatelskyTip = parseInt(tipInputElement.value);
+            pocetPokusu++;
+
+            // Validace vstupu
+            if (isNaN(uzivatelskyTip) || uzivatelskyTip < 1 || uzivatelskyTip > 100) {
+                zpravaTextElement.textContent = "Prosím, zadej platné číslo od 1 do 100.";
+                zpravaTextElement.className = 'text-lg text-red-600'; // Červená barva pro chybu
+                pocetPokusuTextElement.textContent = `Počet pokusů: ${pocetPokusu}`;
+                return;
+            }
+
+            // Porovnání tipu s náhodným číslem
+            if (uzivatelskyTip === nahodneCislo) {
+                zpravaTextElement.textContent = `Gratuluji! Uhodl jsi číslo ${nahodneCislo}!`;
+                zpravaTextElement.className = 'text-lg text-green-600 font-semibold'; // Zelená pro výhru
+                pocetPokusuTextElement.textContent = `Potřeboval jsi na to ${pocetPokusu} pokusů.`;
+                hraBezi = false;
+                tipInputElement.disabled = true;
+                zkusitTlacitkoElement.disabled = true;
+                novaHraTlacitkoElement.classList.remove('hidden'); // Zobrazí tlačítko pro novou hru
+            } else if (uzivatelskyTip < nahodneCislo) {
+                zpravaTextElement.textContent = "Moc nízké! Zkus to znovu.";
+                zpravaTextElement.className = 'text-lg text-blue-600';
+                pocetPokusuTextElement.textContent = `Počet pokusů: ${pocetPokusu}`;
+            } else {
+                zpravaTextElement.textContent = "Moc vysoké! Zkus to znovu.";
+                zpravaTextElement.className = 'text-lg text-purple-600';
+                pocetPokusuTextElement.textContent = `Počet pokusů: ${pocetPokusu}`;
+            }
+            tipInputElement.value = ""; // Vyčistí input po každém pokusu
+            tipInputElement.focus(); // Vrátí focus na input
+        }
+
+        // Přidání posluchačů událostí
+        if (zkusitTlacitkoElement) {
+            zkusitTlacitkoElement.addEventListener('click', zkontrolujTip);
+        }
+        if (novaHraTlacitkoElement) {
+            novaHraTlacitkoElement.addEventListener('click', novaHra);
+        }
+        // Umožní odeslání tipu i stisknutím Enter v input poli
+        if (tipInputElement) {
+            tipInputElement.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    zkontrolujTip();
+                }
+            });
+        }
+
+
+        // Spuštění první hry při načtení stránky
+        novaHra();
+    </script>
+
 </body>
 </html>
