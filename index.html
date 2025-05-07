@@ -16,7 +16,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            min-height: 100vh; /* Změna na 100vh pro lepší využití výšky */
+            height: 100vh; /* Zajištění, že body zabere celou výšku */
             margin: 0;
             padding: 0.5rem;
             overflow: hidden;
@@ -27,8 +28,10 @@
             align-items: center;
             justify-content: center;
             width: 100%;
-            touch-action: none; /* Důležité pro swipe na canvasu */
+            touch-action: none;
             position: relative;
+            flex-grow: 1; /* Aby wrapper zabral dostupný prostor */
+            max-height: calc(100vh - 150px); /* Omezení výšky wrapperu (přizpůsobit podle potřeby) */
         }
         canvas {
             background-color: #2d3748;
@@ -36,9 +39,9 @@
             border-radius: 8px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             max-width: 100%;
-            height: auto;
+            /* Výška bude nastavena JS, aby byl canvas čtvercový a vešel se */
+            /* height: auto; */
             display: block;
-            /* Explicitní touch-action pro canvas, i když je na wrapperu */
             touch-action: none;
         }
         .control-button {
@@ -71,17 +74,17 @@
             font-size: 1.2rem;
             text-align: center;
             padding: 20px;
-            background-color: rgba(0,0,0,0.85); /* Ještě tmavší pro lepší kontrast */
+            background-color: rgba(0,0,0,0.85);
             border-radius: 10px;
             z-index: 10;
             width: 80%;
             max-width: 350px;
-            pointer-events: none; /* Aby neblokovalo kliknutí na canvas pod overlayem, pokud je overlay viditelný */
+            pointer-events: none;
         }
         #messageOverlay button {
              font-size: 0.8rem;
              padding: 8px 15px;
-             pointer-events: auto; /* Tlačítka v message boxu musí být klikatelná */
+             pointer-events: auto;
         }
         #foodSelect {
             font-family: 'Press Start 2P', cursive;
@@ -115,7 +118,7 @@
         .pause-button:disabled {
              opacity: 0.5;
              cursor: not-allowed;
-             box-shadow: 0 3px #7f4a1a; /* Tmavší stín pro disabled */
+             box-shadow: 0 3px #7f4a1a;
         }
 
         #pauseOverlay {
@@ -136,17 +139,22 @@
         .high-score-label {
             color: #f87171; /* Tailwind red-400 */
         }
+        .info-panel {
+             width: 100%; /* Zajistí, že panel zabere šířku kontejneru */
+             max-width: var(--canvas-width, 600px); /* Omezí šířku panelu na šířku canvasu */
+             margin-left: auto;
+             margin-right: auto;
+        }
 
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-2 overflow-hidden">
 
-    <header class="mb-2 text-center">
-        <h1 class="text-3xl md:text-5xl font-bold text-green-400">SNAKE</h1>
+    <header class="mb-2 text-center flex-shrink-0"> <h1 class="text-3xl md:text-5xl font-bold text-green-400">SNAKE</h1>
     </header>
 
     <div class="game-wrapper relative">
-         <div class="info-panel grid grid-cols-2 gap-4 w-full px-1 mb-2 text-sm sm:text-lg">
+         <div class="info-panel grid grid-cols-2 gap-x-4 gap-y-1 w-full px-1 mb-2 text-sm sm:text-lg">
             <p>Skóre: <span id="score" class="text-yellow-400">0</span></p>
             <p class="text-right">Nej: <span id="highScore" class="high-score-label">0</span></p>
             <div class="col-span-2 flex justify-center items-center mt-1">
@@ -165,23 +173,19 @@
         <div id="activeEffectDisplay" class="text-center mb-2"></div>
 
         <canvas id="gameCanvas"></canvas>
-        <div id="messageOverlay" class="hidden"> <p id="gameOverText"></p>
-            <button id="restartButtonOverlay" class="control-button mt-4">Hrát Znovu</button>
+        <div id="messageOverlay" class="message-box hidden"> <p id="gameOverText"></p>
+            <button id="restartButtonOverlay" class="control-button mt-4">Start</button>
         </div>
         <div id="pauseOverlay" class="hidden">PAUZA</div> </div>
 
-    <div id="mobileControls" class="mt-4 grid grid-cols-3 gap-2 w-full max-w-xs md:hidden">
-        <div></div> <button id="upBtn" class="control-button">↑</button>
+    <div id="mobileControls" class="mt-4 grid grid-cols-3 gap-2 w-full max-w-xs md:hidden flex-shrink-0"> <div></div> <button id="upBtn" class="control-button">↑</button>
         <div></div>
         <button id="leftBtn" class="control-button">←</button>
         <button id="downBtn" class="control-button">↓</button>
         <button id="rightBtn" class="control-button">→</button>
     </div>
 
-    <button id="restartButton" class="control-button mt-4 hidden">Restart Hry</button>
-
-    <footer class="mt-4 text-center text-xs text-gray-500">
-        Ovládání: Šipky / WASD / Swipe / Tlačítka | Pauza: Mezerník
+    <button id="restartButton" class="control-button mt-4 hidden flex-shrink-0">Restart Hry</button> <footer class="mt-4 text-center text-xs text-gray-500 flex-shrink-0"> Ovládání: Šipky / WASD / Swipe / Tlačítka | Pauza: Mezerník
     </footer>
 
     <script>
@@ -190,15 +194,15 @@
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score');
         const highScoreDisplay = document.getElementById('highScore');
-        const restartButton = document.getElementById('restartButton'); // Tlačítko pod hrou
+        const restartButton = document.getElementById('restartButton');
         const foodSelect = document.getElementById('foodSelect');
         const pauseButton = document.getElementById('pauseButton');
         const pauseOverlay = document.getElementById('pauseOverlay');
         const activeEffectDisplay = document.getElementById('activeEffectDisplay');
-
-        const messageOverlay = document.getElementById('messageOverlay'); // Game Over overlay
+        const messageOverlay = document.getElementById('messageOverlay');
         const gameOverText = document.getElementById('gameOverText');
-        const restartButtonOverlay = document.getElementById('restartButtonOverlay'); // Tlačítko v Game Over overlay
+        const restartButtonOverlay = document.getElementById('restartButtonOverlay');
+        const infoPanel = document.querySelector('.info-panel'); // Pro nastavení šířky
 
         const upBtn = document.getElementById('upBtn');
         const downBtn = document.getElementById('downBtn');
@@ -217,7 +221,7 @@
         let baseGameSpeed = 280;
         let gameSpeed = baseGameSpeed;
         let gameOverFlag = false;
-        let gamePaused = true; // Hra začíná pozastavená (čeká na první start)
+        let gamePaused = true; // Hra začíná pozastavená
         let gameRunning = false;
         let currentFoodEmoji = '🍎';
 
@@ -236,19 +240,38 @@
 
         // --- Swipe ---
         let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
-        const swipeThreshold = 30; // Zmenšeno pro citlivější swipe
+        const swipeThreshold = 25; // Mírně menší práh pro citlivější swipe
 
         // --- Funkce ---
         function resizeCanvas() {
             const gameWrapper = document.querySelector('.game-wrapper');
-            let availableWidth = gameWrapper.clientWidth;
-            let availableHeight = window.innerHeight * 0.6;
-            let size = Math.min(availableWidth, availableHeight);
+            const titleHeight = document.querySelector('.game-title')?.offsetHeight || 60;
+            const footerHeight = document.querySelector('footer')?.offsetHeight || 30;
+            const infoPanelHeight = infoPanel?.offsetHeight || 60;
+            const mobileControlsHeight = document.getElementById('mobileControls')?.offsetHeight || 0; // Výška mobilních ovladačů
+            const bodyPadding = 16; // 0.5rem * 2
+
+            // Výška dostupná pro .game-wrapper
+            const availableWrapperHeight = window.innerHeight - titleHeight - footerHeight - bodyPadding - mobileControlsHeight - 20; // 20px buffer
+
+            // Šířka dostupná pro .game-wrapper
+            const availableWidth = window.innerWidth - bodyPadding - 20; // 20px buffer
+
+            // Velikost canvasu je menší z dostupných rozměrů, mínus prostor pro info panel
+            let canvasContainerHeight = availableWrapperHeight - infoPanelHeight - 10; // 10px buffer
+            let size = Math.min(availableWidth, canvasContainerHeight, 800); // Omezíme max velikost
+            if (size < 200) size = 200; // Minimální velikost
+
             tileSize = Math.floor(size / numGridCells);
             if (tileSize < 8) tileSize = 8;
+
             canvas.width = tileSize * numGridCells;
             canvas.height = tileSize * numGridCells;
+
+            // Nastavíme maximální šířku info panelu podle canvasu
+            infoPanel.style.maxWidth = `${canvas.width}px`;
         }
+
 
         function initSnake() {
             snake = [{ x: Math.floor(numGridCells / 2) * tileSize, y: Math.floor(numGridCells / 2) * tileSize }];
@@ -256,7 +279,7 @@
             dy = 0;
         }
 
-        function placeItem(itemType) {
+        function placeItem(itemType) { /* ... beze změny ... */
             let item = { x: 0, y: 0 };
             let collision = true;
             let attempts = 0;
@@ -282,14 +305,14 @@
             }
             if (attempts >= 100) console.warn("Nepodařilo se najít volné místo pro item:", itemType);
             return item;
-        }
+         }
 
         function placeFood() {
             const position = placeItem('food');
             food = { ...position, emoji: currentFoodEmoji };
         }
 
-        function spawnPowerUp() {
+        function spawnPowerUp() { /* ... beze změny ... */
             if (powerUp || !gameRunning || gamePaused) {
                 schedulePowerUpSpawn(); return;
             }
@@ -303,7 +326,7 @@
             schedulePowerUpSpawn();
         }
 
-        function schedulePowerUpSpawn() {
+        function schedulePowerUpSpawn() { /* ... beze změny ... */
             clearTimeout(powerUpSpawnTimeout);
             if (gameRunning && !gamePaused) {
                 const nextSpawnTime = powerUpSpawnInterval + (Math.random() - 0.5) * 5000;
@@ -311,8 +334,8 @@
             }
         }
 
-        function activateEffect(type) {
-            const typeData = POWER_UP_TYPES[type];
+        function activateEffect(type) { /* ... beze změny ... */
+             const typeData = POWER_UP_TYPES[type];
             if (!typeData) return;
             clearTimeout(activeEffect?.timeoutId);
             clearInterval(activeEffectUpdateInterval);
@@ -326,8 +349,8 @@
             activeEffectUpdateInterval = setInterval(updateActiveEffectDisplay, 1000);
         }
 
-        function deactivateEffect() {
-            const wasSlowdown = activeEffect?.type === 'SLOWDOWN';
+        function deactivateEffect() { /* ... beze změny ... */
+             const wasSlowdown = activeEffect?.type === 'SLOWDOWN';
             activeEffect = null;
             clearInterval(activeEffectUpdateInterval);
             updateActiveEffectDisplay();
@@ -337,13 +360,13 @@
             }
         }
 
-        function updateActiveEffectDisplay() {
-            if (activeEffect) {
+        function updateActiveEffectDisplay() { /* ... beze změny ... */
+             if (activeEffect) {
                 const remainingTime = Math.max(0, Math.ceil((activeEffect.endTime - Date.now()) / 1000));
                 if (remainingTime > 0) {
                     activeEffectDisplay.innerHTML = `Efekt: ${activeEffect.emoji} (${remainingTime}s)`;
                 } else {
-                    deactivateEffect(); // Zavolá se, i když interval ještě běží
+                    deactivateEffect();
                 }
             } else {
                 activeEffectDisplay.innerHTML = '';
@@ -351,17 +374,17 @@
             }
         }
 
-        function draw() {
+        function draw() { /* ... beze změny ... */
             ctx.fillStyle = '#2d3748';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            if (food) { /* ... kreslení jídla ... */
+            if (food) {
                 const fontSize = tileSize * 0.8;
                 ctx.font = `${fontSize}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(food.emoji, food.x + tileSize / 2, food.y + tileSize / 2 + fontSize * 0.08);
             }
-            if (powerUp) { /* ... kreslení power-upu ... */
+            if (powerUp) {
                  const fontSize = tileSize * 1.0;
                  ctx.font = `${fontSize}px sans-serif`;
                  ctx.textAlign = 'center';
@@ -373,7 +396,7 @@
                  ctx.globalAlpha = 1.0;
                  ctx.shadowBlur = 0;
             }
-            if (snake) { /* ... kreslení hada ... */
+            if (snake) {
                 snake.forEach((segment, index) => {
                     ctx.fillStyle = (index === 0) ? '#48bb78' : '#68d391';
                     ctx.fillRect(segment.x, segment.y, tileSize - 1, tileSize - 1);
@@ -381,9 +404,9 @@
                     ctx.strokeRect(segment.x, segment.y, tileSize, tileSize);
                 });
             }
-        }
+         }
 
-        function update() {
+        function update() { /* ... beze změny ... */
             if (gamePaused || gameOverFlag) return;
             const head = { x: snake[0].x + dx, y: snake[0].y + dy };
             if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) { gameOver(); return; }
@@ -400,37 +423,42 @@
                 clearTimeout(powerUpDespawnTimeout);
                 snake.pop();
             } else { snake.pop(); }
-        }
+         }
 
         function gameLoop() {
             if (gameOverFlag) { clearTimeout(gameLoopTimeout); return; }
-            if (gamePaused) { gameLoopTimeout = setTimeout(gameLoop, 100); return; }
+            if (gamePaused) {
+                // Pokud je pauza, jen naplánujeme další kontrolu
+                gameLoopTimeout = setTimeout(gameLoop, 100); // Kontrolujeme stav pauzy častěji
+                return;
+            }
+            // Pokud hra běží, provedeme update a draw
             update();
             draw();
             drawScoreAndHighScore();
             const speedMultiplier = activeEffect?.type === 'SLOWDOWN' ? POWER_UP_TYPES.SLOWDOWN.effectValue : 1;
             const currentSpeed = baseGameSpeed * speedMultiplier;
-            gameLoopTimeout = setTimeout(gameLoop, currentSpeed);
+            gameLoopTimeout = setTimeout(gameLoop, currentSpeed); // Naplánujeme další krok
         }
 
-        function loadHighScore() {
+        function loadHighScore() { /* ... beze změny ... */
             const storedHighScore = localStorage.getItem('snakeHighScore');
             highScore = storedHighScore ? parseInt(storedHighScore, 10) : 0;
-        }
+         }
 
-        function updateHighScore() {
+        function updateHighScore() { /* ... beze změny ... */
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('snakeHighScore', highScore);
             }
-        }
+         }
 
-        function drawScoreAndHighScore() {
+        function drawScoreAndHighScore() { /* ... beze změny ... */
             scoreDisplay.textContent = score;
             highScoreDisplay.textContent = highScore;
-        }
+         }
 
-        function gameOver() {
+        function gameOver() { /* ... beze změny ... */
             gameOverFlag = true;
             gameRunning = false;
             gamePaused = true;
@@ -445,22 +473,23 @@
             updateActiveEffectDisplay();
             gameOverText.textContent = `KONEC HRY! Skóre: ${score}`;
             messageOverlay.classList.remove('hidden');
+            restartButtonOverlay.textContent = "Hrát Znovu"; // Změna textu tlačítka
             restartButton.classList.remove('hidden');
             foodSelect.disabled = false;
             pauseButton.textContent = "PAUZA";
             pauseButton.disabled = true;
             pauseOverlay.classList.add('hidden');
-        }
+         }
 
-        function changeDirection(newDx, newDy) {
+        function changeDirection(newDx, newDy) { /* ... beze změny ... */
             if (dx !== 0 && newDx !== 0 && dx === -newDx) return;
             if (dy !== 0 && newDy !== 0 && dy === -newDy) return;
             dx = newDx;
             dy = newDy;
-        }
+         }
 
         function togglePause() {
-            if (gameOverFlag || !gameRunning) return; // Pauza funguje jen když hra běží a není konec
+            if (gameOverFlag || !gameRunning) return; // Pauza funguje jen když hra běží
             gamePaused = !gamePaused;
             if (gamePaused) {
                 pauseButton.textContent = "POKRAČOVAT";
@@ -468,6 +497,7 @@
                 foodSelect.disabled = false;
                 clearTimeout(powerUpSpawnTimeout);
                 clearInterval(activeEffectUpdateInterval);
+                // Smyčka se zastaví sama v dalším kroku
             } else {
                 pauseButton.textContent = "PAUZA";
                 pauseOverlay.classList.add('hidden');
@@ -478,6 +508,7 @@
                     activeEffectUpdateInterval = setInterval(updateActiveEffectDisplay, 1000);
                     updateActiveEffectDisplay();
                 }
+                // Explicitně spustíme další krok smyčky, aby hra pokračovala okamžitě
                 clearTimeout(gameLoopTimeout);
                 gameLoop();
             }
@@ -486,6 +517,11 @@
         // --- Ovládání ---
         document.addEventListener('keydown', e => {
             const keyPressed = e.key.toLowerCase();
+            if (!gameRunning && !gameOverFlag && (keyPressed === ' ' || keyPressed === 'enter')) {
+                 // Start hry, pokud ještě neběží
+                 startGameAction();
+                 return;
+            }
             if (!gameOverFlag && !gamePaused) { // Ovládání směru
                 if ((keyPressed === 'arrowup' || keyPressed === 'w') && dy === 0) changeDirection(0, -tileSize);
                 else if ((keyPressed === 'arrowdown' || keyPressed === 's') && dy === 0) changeDirection(0, tileSize);
@@ -499,7 +535,7 @@
             }
             // Restart Enterem (pokud je konec hry)
             if (keyPressed === 'enter' && gameOverFlag) {
-                 startGame();
+                 startGameAction();
             }
         });
 
@@ -511,40 +547,45 @@
 
         // Swipe ovládání
         canvas.addEventListener('touchstart', (e) => {
-            // Pokud je hra zapauzovaná nebo skončila, můžeme dotyk použít ke startu/restartu
-            if (gamePaused) {
-                 startGameAction(); // Funkce, která spustí nebo restartuje hru
-                 return; // Nepokračujeme ve zpracování swipe pro směr
+            if (gamePaused && gameRunning && !gameOverFlag) { // Pokud je zapauzováno, dotyk odpauzuje
+                 togglePause();
+                 return;
             }
+            if (!gameRunning || gameOverFlag) { // Pokud hra neběží nebo skončila, dotyk startuje/restartuje
+                 startGameAction();
+                 return;
+            }
+            // Pokud hra běží, zaznamenáme start swipe
             e.preventDefault();
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
         }, { passive: false });
 
         canvas.addEventListener('touchend', (e) => {
-            if (gamePaused) return; // Pokud je pauza, swipe nedělá nic
+            if (gamePaused || gameOverFlag) return; // Swipe nefunguje při pauze nebo konci
             e.preventDefault();
             touchEndX = e.changedTouches[0].screenX;
             touchEndY = e.changedTouches[0].screenY;
-            if (!gameOverFlag && !gamePaused) { handleSwipe(); }
+            handleSwipe();
         }, { passive: false });
 
         function handleSwipe() { /* ... kód pro swipe ... */
-            const deltaX = touchEndX - touchStartX;
+             const deltaX = touchEndX - touchStartX;
             const deltaY = touchEndY - touchStartY;
             const absDeltaX = Math.abs(deltaX);
             const absDeltaY = Math.abs(deltaY);
 
-            if (absDeltaX > swipeThreshold || absDeltaY > swipeThreshold) {
-                if (absDeltaX > absDeltaY) { // Horizontální
-                    if (deltaX > 0 && dx === 0) changeDirection(tileSize, 0);
-                    else if (deltaX < 0 && dx === 0) changeDirection(-tileSize, 0);
-                } else { // Vertikální
-                    if (deltaY > 0 && dy === 0) changeDirection(0, tileSize);
-                    else if (deltaY < 0 && dy === 0) changeDirection(0, -tileSize);
-                }
+            // Přidáme podmínku, aby se směr nemohl změnit, pokud je swipe příliš krátký
+            if (absDeltaX < swipeThreshold && absDeltaY < swipeThreshold) return;
+
+            if (absDeltaX > absDeltaY) { // Horizontální
+                if (deltaX > 0 && dx === 0) changeDirection(tileSize, 0);
+                else if (deltaX < 0 && dx === 0) changeDirection(-tileSize, 0);
+            } else { // Vertikální
+                if (deltaY > 0 && dy === 0) changeDirection(0, tileSize); // Swipe dolů
+                else if (deltaY < 0 && dy === 0) changeDirection(0, -tileSize); // Swipe nahoru
             }
-        }
+         }
 
         // Listener pro změnu výběru ovoce
         foodSelect.addEventListener('change', (e) => {
@@ -560,11 +601,10 @@
 
 
         // --- Spuštění a Restart ---
-        // Funkce, která spustí hru (volá se tlačítky restart a při prvním dotyku/klávese, pokud hra neběží)
         function startGameAction() {
-             if (!gameRunning || gameOverFlag) { // Spustí novou hru, pokud neběží nebo skončila
+             if (!gameRunning || gameOverFlag) {
                  startGame();
-             } else if (gamePaused) { // Pokud hra běžela a je jen pauznutá, odpauzuje ji
+             } else if (gamePaused) {
                  togglePause();
              }
         }
@@ -602,8 +642,8 @@
             schedulePowerUpSpawn();
         }
 
-        restartButton.addEventListener('click', startGameAction); // Používá novou funkci
-        restartButtonOverlay.addEventListener('click', startGameAction); // Používá novou funkci
+        restartButton.addEventListener('click', startGameAction);
+        restartButtonOverlay.addEventListener('click', startGameAction);
 
         window.addEventListener('resize', () => {
             const wasPausedBeforeResize = gamePaused;
@@ -613,35 +653,31 @@
             clearTimeout(gameLoopTimeout);
             clearTimeout(powerUpSpawnTimeout);
             clearInterval(activeEffectUpdateInterval);
-            gamePaused = true; // Vždy pauzni při resize
+            gamePaused = true;
 
             resizeCanvas();
 
-            // Vždy překreslíme stav
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (snake && food) { draw(); } else { initializeGameUI(); return; }
             drawScoreAndHighScore();
 
-            // Obnovíme stav pauzy/běhu
             if (wasGameOver) {
-                 gameOver(); // Znovu zobrazí Game Over stav
+                 gameOver();
             } else if (wasRunningBeforeResize && !wasPausedBeforeResize) {
-                // Hra běžela, necháme ji zapauzovanou a zobrazíme "Pokračovat"
-                gamePaused = true;
+                gamePaused = true; // Necháme pauznuté po resize
                 pauseOverlay.classList.remove('hidden');
                 foodSelect.disabled = false;
                 pauseButton.textContent = "POKRAČOVAT";
                 pauseButton.disabled = false;
                 updateActiveEffectDisplay();
             } else if (wasPausedBeforeResize && wasRunningBeforeResize) {
-                // Hra byla zapauzovaná uživatelem, necháme ji zapauzovanou
                 gamePaused = true;
                 pauseOverlay.classList.remove('hidden');
                 foodSelect.disabled = false;
                 pauseButton.textContent = "POKRAČOVAT";
                 pauseButton.disabled = false;
                 updateActiveEffectDisplay();
-            } else { // Hra neběžela (úvodní stav)
+            } else {
                 initializeGameUI();
             }
         });
@@ -658,7 +694,7 @@
             drawScoreAndHighScore();
             foodSelect.disabled = false;
             pauseButton.disabled = true;
-            messageOverlay.classList.add('hidden');
+            messageOverlay.classList.remove('hidden'); // Zobrazíme úvodní zprávu
             pauseOverlay.classList.add('hidden');
             restartButton.classList.add('hidden');
             activeEffectDisplay.innerHTML = '';
@@ -672,10 +708,8 @@
             if(powerUpDespawnTimeout) clearTimeout(powerUpDespawnTimeout);
             if(activeEffect?.timeoutId) clearTimeout(activeEffect.timeoutId);
             if(activeEffectUpdateInterval) clearInterval(activeEffectUpdateInterval);
-            // Přidáme nápovědu pro start hry
-            gameOverText.textContent = "Stiskni tlačítko, Mezerník, Enter nebo tapni pro start";
-            messageOverlay.classList.remove('hidden'); // Zobrazíme úvodní zprávu
-            restartButtonOverlay.textContent = "Start"; // Změníme text tlačítka
+            gameOverText.textContent = "Stiskni tlačítko, Mezerník, Enter nebo tapni pro start"; // Upravená úvodní zpráva
+            restartButtonOverlay.textContent = "Start";
         }
 
         initializeGameUI();
