@@ -44,26 +44,9 @@
             display: block;
             touch-action: none;
         }
-        .control-button {
-            background-color: #4a5568;
-            color: white;
-            border: 2px solid #2d3748;
-            padding: 12px 18px;
-            border-radius: 10px;
-            font-family: 'Press Start 2P', cursive;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            box-shadow: 0 4px #2d3748;
-            margin: 5px;
-            font-size: 1.2rem;
-            touch-action: manipulation;
-        }
-        .control-button:hover { background-color: #2d3748; }
-        .control-button:active {
-            background-color: #1a202c;
-            transform: translateY(2px);
-            box-shadow: 0 2px #1a202c;
-        }
+        /* Tlačítka pro ovládání byla odstraněna, takže jejich styly nejsou potřeba */
+        /* .control-button { ... } */
+
         .hidden { display: none; }
         #messageOverlay, #pauseOverlay {
             position: absolute;
@@ -85,7 +68,24 @@
              font-size: 0.8rem;
              padding: 8px 15px;
              pointer-events: auto;
+             /* Použití stylu control-button pro konzistenci */
+             background-color: #4a5568;
+             color: white;
+             border: 2px solid #2d3748;
+             border-radius: 10px;
+             font-family: 'Press Start 2P', cursive;
+             cursor: pointer;
+             transition: background-color 0.2s, transform 0.1s;
+             box-shadow: 0 4px #2d3748;
+             margin-top: 1rem; /* Přidán margin top */
         }
+         #messageOverlay button:hover { background-color: #2d3748; }
+         #messageOverlay button:active {
+            background-color: #1a202c;
+            transform: translateY(2px);
+            box-shadow: 0 2px #1a202c;
+        }
+
         #foodSelect {
             font-family: 'Press Start 2P', cursive;
             background-color: #374151;
@@ -112,9 +112,16 @@
             background-color: #f59e0b; /* amber-500 */
             color: #78350f; /* amber-900 */
             box-shadow: 0 3px #b45309; /* amber-700 */
+             /* Použití stylu control-button pro konzistenci */
+             border: 2px solid #92400e; /* amber-800 */
+             border-radius: 10px;
+             font-family: 'Press Start 2P', cursive;
+             cursor: pointer;
+             transition: background-color 0.2s, transform 0.1s;
+             margin-left: 1rem; /* Přidán margin left */
         }
         .pause-button:hover { background-color: #d97706; /* amber-600 */ }
-        .pause-button:active { box-shadow: 0 1px #b45309; }
+        .pause-button:active { box-shadow: 0 1px #b45309; transform: translateY(2px); }
         .pause-button:disabled {
              opacity: 0.5;
              cursor: not-allowed;
@@ -167,25 +174,18 @@
                      <option value="⭐">⭐ Hvězda</option>
                      <option value="💎">💎 Diamant</option>
                  </select>
-                 <button id="pauseButton" class="control-button pause-button ml-4">PAUZA</button>
+                 <button id="pauseButton" class="pause-button">PAUZA</button>
             </div>
         </div>
         <div id="activeEffectDisplay" class="text-center mb-2"></div>
 
         <canvas id="gameCanvas"></canvas>
         <div id="messageOverlay" class="message-box hidden"> <p id="gameOverText"></p>
-            <button id="restartButtonOverlay" class="control-button mt-4">Start</button>
+            <button id="restartButtonOverlay">Start</button>
         </div>
         <div id="pauseOverlay" class="hidden">PAUZA</div> </div>
 
-    <div id="mobileControls" class="mt-4 grid grid-cols-3 gap-2 w-full max-w-xs md:hidden flex-shrink-0"> <div></div> <button id="upBtn" class="control-button">↑</button>
-        <div></div>
-        <button id="leftBtn" class="control-button">←</button>
-        <button id="downBtn" class="control-button">↓</button>
-        <button id="rightBtn" class="control-button">→</button>
-    </div>
-
-    <button id="restartButton" class="control-button mt-4 hidden flex-shrink-0">Restart Hry</button> <footer class="mt-4 text-center text-xs text-gray-500 flex-shrink-0"> Ovládání: Šipky / WASD / Swipe / Tlačítka | Pauza: Mezerník
+    <button id="restartButton" class="control-button mt-4 hidden flex-shrink-0">Restart Hry</button> <footer class="mt-4 text-center text-xs text-gray-500 flex-shrink-0"> Ovládání: Šipky / WASD / Swipe | Pauza: Mezerník
     </footer>
 
     <script>
@@ -202,12 +202,7 @@
         const messageOverlay = document.getElementById('messageOverlay');
         const gameOverText = document.getElementById('gameOverText');
         const restartButtonOverlay = document.getElementById('restartButtonOverlay');
-        const infoPanel = document.querySelector('.info-panel'); // Pro nastavení šířky
-
-        const upBtn = document.getElementById('upBtn');
-        const downBtn = document.getElementById('downBtn');
-        const leftBtn = document.getElementById('leftBtn');
-        const rightBtn = document.getElementById('rightBtn');
+        const infoPanel = document.querySelector('.info-panel');
 
         // --- Herní stav ---
         const numGridCells = 20;
@@ -221,7 +216,7 @@
         let baseGameSpeed = 280;
         let gameSpeed = baseGameSpeed;
         let gameOverFlag = false;
-        let gamePaused = true; // Hra začíná pozastavená
+        let gamePaused = true;
         let gameRunning = false;
         let currentFoodEmoji = '🍎';
 
@@ -240,7 +235,7 @@
 
         // --- Swipe ---
         let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
-        const swipeThreshold = 25; // Mírně menší práh pro citlivější swipe
+        const swipeThreshold = 15; // Zmenšen práh pro citlivější swipe
 
         // --- Funkce ---
         function resizeCanvas() {
@@ -248,19 +243,15 @@
             const titleHeight = document.querySelector('.game-title')?.offsetHeight || 60;
             const footerHeight = document.querySelector('footer')?.offsetHeight || 30;
             const infoPanelHeight = infoPanel?.offsetHeight || 60;
-            const mobileControlsHeight = document.getElementById('mobileControls')?.offsetHeight || 0; // Výška mobilních ovladačů
-            const bodyPadding = 16; // 0.5rem * 2
+            // Mobilní ovládací tlačítka jsou pryč, není třeba je odečítat
+            const bodyPadding = 16;
 
-            // Výška dostupná pro .game-wrapper
-            const availableWrapperHeight = window.innerHeight - titleHeight - footerHeight - bodyPadding - mobileControlsHeight - 20; // 20px buffer
+            const availableWrapperHeight = window.innerHeight - titleHeight - footerHeight - bodyPadding - 20;
+            const availableWidth = window.innerWidth - bodyPadding - 20;
 
-            // Šířka dostupná pro .game-wrapper
-            const availableWidth = window.innerWidth - bodyPadding - 20; // 20px buffer
-
-            // Velikost canvasu je menší z dostupných rozměrů, mínus prostor pro info panel
-            let canvasContainerHeight = availableWrapperHeight - infoPanelHeight - 10; // 10px buffer
-            let size = Math.min(availableWidth, canvasContainerHeight, 800); // Omezíme max velikost
-            if (size < 200) size = 200; // Minimální velikost
+            let canvasContainerHeight = availableWrapperHeight - infoPanelHeight - 10;
+            let size = Math.min(availableWidth, canvasContainerHeight, 800);
+            if (size < 200) size = 200;
 
             tileSize = Math.floor(size / numGridCells);
             if (tileSize < 8) tileSize = 8;
@@ -268,14 +259,12 @@
             canvas.width = tileSize * numGridCells;
             canvas.height = tileSize * numGridCells;
 
-            // Nastavíme maximální šířku info panelu podle canvasu
             infoPanel.style.maxWidth = `${canvas.width}px`;
         }
 
-
         function initSnake() {
             snake = [{ x: Math.floor(numGridCells / 2) * tileSize, y: Math.floor(numGridCells / 2) * tileSize }];
-            dx = tileSize; // Start doprava
+            dx = tileSize;
             dy = 0;
         }
 
@@ -305,7 +294,7 @@
             }
             if (attempts >= 100) console.warn("Nepodařilo se najít volné místo pro item:", itemType);
             return item;
-         }
+        }
 
         function placeFood() {
             const position = placeItem('food');
@@ -428,17 +417,15 @@
         function gameLoop() {
             if (gameOverFlag) { clearTimeout(gameLoopTimeout); return; }
             if (gamePaused) {
-                // Pokud je pauza, jen naplánujeme další kontrolu
-                gameLoopTimeout = setTimeout(gameLoop, 100); // Kontrolujeme stav pauzy častěji
+                gameLoopTimeout = setTimeout(gameLoop, 100);
                 return;
             }
-            // Pokud hra běží, provedeme update a draw
             update();
             draw();
             drawScoreAndHighScore();
             const speedMultiplier = activeEffect?.type === 'SLOWDOWN' ? POWER_UP_TYPES.SLOWDOWN.effectValue : 1;
             const currentSpeed = baseGameSpeed * speedMultiplier;
-            gameLoopTimeout = setTimeout(gameLoop, currentSpeed); // Naplánujeme další krok
+            gameLoopTimeout = setTimeout(gameLoop, currentSpeed);
         }
 
         function loadHighScore() { /* ... beze změny ... */
@@ -473,7 +460,7 @@
             updateActiveEffectDisplay();
             gameOverText.textContent = `KONEC HRY! Skóre: ${score}`;
             messageOverlay.classList.remove('hidden');
-            restartButtonOverlay.textContent = "Hrát Znovu"; // Změna textu tlačítka
+            restartButtonOverlay.textContent = "Hrát Znovu";
             restartButton.classList.remove('hidden');
             foodSelect.disabled = false;
             pauseButton.textContent = "PAUZA";
@@ -497,7 +484,7 @@
                 foodSelect.disabled = false;
                 clearTimeout(powerUpSpawnTimeout);
                 clearInterval(activeEffectUpdateInterval);
-                // Smyčka se zastaví sama v dalším kroku
+                clearTimeout(gameLoopTimeout); // Explicitně zastavíme timeout smyčky
             } else {
                 pauseButton.textContent = "PAUZA";
                 pauseOverlay.classList.add('hidden');
@@ -518,9 +505,7 @@
         document.addEventListener('keydown', e => {
             const keyPressed = e.key.toLowerCase();
             if (!gameRunning && !gameOverFlag && (keyPressed === ' ' || keyPressed === 'enter')) {
-                 // Start hry, pokud ještě neběží
-                 startGameAction();
-                 return;
+                 startGameAction(); return;
             }
             if (!gameOverFlag && !gamePaused) { // Ovládání směru
                 if ((keyPressed === 'arrowup' || keyPressed === 'w') && dy === 0) changeDirection(0, -tileSize);
@@ -539,23 +524,19 @@
             }
         });
 
-        // Mobilní tlačítka
-        if (upBtn) upBtn.addEventListener('click', () => { if (dy === 0 && !gameOverFlag && !gamePaused) changeDirection(0, -tileSize); });
-        if (downBtn) downBtn.addEventListener('click', () => { if (dy === 0 && !gameOverFlag && !gamePaused) changeDirection(0, tileSize); });
-        if (leftBtn) leftBtn.addEventListener('click', () => { if (dx === 0 && !gameOverFlag && !gamePaused) changeDirection(-tileSize, 0); });
-        if (rightBtn) rightBtn.addEventListener('click', () => { if (dx === 0 && !gameOverFlag && !gamePaused) changeDirection(tileSize, 0); });
-
         // Swipe ovládání
         canvas.addEventListener('touchstart', (e) => {
-            if (gamePaused && gameRunning && !gameOverFlag) { // Pokud je zapauzováno, dotyk odpauzuje
+            // První dotyk na canvasu, když hra neběží nebo skončila, spustí/restartuje hru
+            if (!gameRunning || gameOverFlag) {
+                 startGameAction();
+                 return; // Nepokračujeme ve zpracování swipe pro směr
+            }
+            // Pokud hra běží a je zapauzovaná, dotyk ji odpauzuje
+            if (gamePaused) {
                  togglePause();
                  return;
             }
-            if (!gameRunning || gameOverFlag) { // Pokud hra neběží nebo skončila, dotyk startuje/restartuje
-                 startGameAction();
-                 return;
-            }
-            // Pokud hra běží, zaznamenáme start swipe
+            // Pokud hra běží a není pauza, zaznamenáme start swipe
             e.preventDefault();
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
@@ -569,13 +550,12 @@
             handleSwipe();
         }, { passive: false });
 
-        function handleSwipe() { /* ... kód pro swipe ... */
+        function handleSwipe() {
              const deltaX = touchEndX - touchStartX;
             const deltaY = touchEndY - touchStartY;
             const absDeltaX = Math.abs(deltaX);
             const absDeltaY = Math.abs(deltaY);
 
-            // Přidáme podmínku, aby se směr nemohl změnit, pokud je swipe příliš krátký
             if (absDeltaX < swipeThreshold && absDeltaY < swipeThreshold) return;
 
             if (absDeltaX > absDeltaY) { // Horizontální
@@ -605,7 +585,7 @@
              if (!gameRunning || gameOverFlag) {
                  startGame();
              } else if (gamePaused) {
-                 togglePause();
+                 togglePause(); // Pokud je pauza, odpauzuj
              }
         }
 
@@ -653,31 +633,35 @@
             clearTimeout(gameLoopTimeout);
             clearTimeout(powerUpSpawnTimeout);
             clearInterval(activeEffectUpdateInterval);
-            gamePaused = true;
+            gamePaused = true; // Vždy pauzni při resize
 
             resizeCanvas();
 
+            // Vždy překreslíme stav
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (snake && food) { draw(); } else { initializeGameUI(); return; }
             drawScoreAndHighScore();
 
+            // Obnovíme stav pauzy/běhu
             if (wasGameOver) {
-                 gameOver();
+                 gameOver(); // Znovu zobrazí Game Over stav
             } else if (wasRunningBeforeResize && !wasPausedBeforeResize) {
-                gamePaused = true; // Necháme pauznuté po resize
-                pauseOverlay.classList.remove('hidden');
-                foodSelect.disabled = false;
-                pauseButton.textContent = "POKRAČOVAT";
-                pauseButton.disabled = false;
-                updateActiveEffectDisplay();
-            } else if (wasPausedBeforeResize && wasRunningBeforeResize) {
+                // Hra běžela, necháme ji zapauzovanou a zobrazíme "Pokračovat"
                 gamePaused = true;
                 pauseOverlay.classList.remove('hidden');
                 foodSelect.disabled = false;
                 pauseButton.textContent = "POKRAČOVAT";
                 pauseButton.disabled = false;
                 updateActiveEffectDisplay();
-            } else {
+            } else if (wasPausedBeforeResize && wasRunningBeforeResize) {
+                // Hra byla zapauzovaná uživatelem, necháme ji zapauzovanou
+                gamePaused = true;
+                pauseOverlay.classList.remove('hidden');
+                foodSelect.disabled = false;
+                pauseButton.textContent = "POKRAČOVAT";
+                pauseButton.disabled = false;
+                updateActiveEffectDisplay();
+            } else { // Hra neběžela (úvodní stav)
                 initializeGameUI();
             }
         });
@@ -708,7 +692,7 @@
             if(powerUpDespawnTimeout) clearTimeout(powerUpDespawnTimeout);
             if(activeEffect?.timeoutId) clearTimeout(activeEffect.timeoutId);
             if(activeEffectUpdateInterval) clearInterval(activeEffectUpdateInterval);
-            gameOverText.textContent = "Stiskni tlačítko, Mezerník, Enter nebo tapni pro start"; // Upravená úvodní zpráva
+            gameOverText.textContent = "Stiskni tlačítko, Mezerník, Enter nebo tapni pro start";
             restartButtonOverlay.textContent = "Start";
         }
 
